@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ALERTA DF (OpenStreetMap) — Monitoramento de riscos naturais no Distrito Federal</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f5f7;--sf:#fff;--tx:#14202b;--mu:#5b6b79;--bd:#d6dde3;--ac:#0b5cab;--land:#e8eee6;--lake:#a9cde8;
+--l0:#2e9e5b;--l1:#e0b100;--l2:#e8741a;--l3:#d12b2b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0e151c;--sf:#16212b;--tx:#e6edf3;--mu:#93a4b3;--bd:#2a3a48;--ac:#5aa9f0;--land:#1d2b25;--lake:#27506f}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0e151c;--sf:#16212b;--tx:#e6edf3;--mu:#93a4b3;--bd:#2a3a48;--ac:#5aa9f0;--land:#1d2b25;--lake:#27506f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+header{background:var(--ac);color:#fff;padding:14px 18px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:22px;letter-spacing:.5px}
+header p{margin:0;font-size:13px;opacity:.9}
+#nivel{padding:8px 14px;border-radius:6px;font-weight:700;background:#fff;color:#14202b;border-left:10px solid var(--l0)}
+main{max-width:1180px;margin:0 auto;padding:14px;display:grid;gap:14px;grid-template-columns:repeat(12,1fr)}
+section{background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:14px;min-width:0}
+h2{margin:0 0 10px;font-size:16px}
+.c12{grid-column:span 12}.c7{grid-column:span 7}.c5{grid-column:span 5}.c6{grid-column:span 6}
+@media(max-width:860px){.c7,.c5,.c6{grid-column:span 12}}
+.aviso{font-size:12.5px;color:var(--mu);background:var(--sf);border:1px dashed var(--bd);border-radius:8px;padding:8px 12px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tabs label{border:1px solid var(--bd);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:13px}
+.tabs input{position:absolute;opacity:0}
+.tabs input:checked+span{font-weight:700;color:var(--ac)}
+.tabs label:has(input:checked){border-color:var(--ac);background:color-mix(in srgb,var(--ac) 12%,transparent)}
+.tabs label:has(input:focus-visible){outline:2px solid var(--ac)}
+#mapa{width:100%;height:auto;max-height:560px;display:block}
+.leaflet-container{font:inherit}
+.leaflet-tooltip.region-label{border:0;background:rgba(255,255,255,.82);box-shadow:none;font-weight:600;padding:1px 4px}
+.reg{cursor:pointer}.reg:focus-visible{outline:none;stroke:var(--tx);stroke-width:2}
+.leg{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--mu);margin-top:6px}
+.leg i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.slider{display:flex;gap:10px;align-items:center;margin:8px 0;font-size:13px}
+.slider input{flex:1}
+#detalhe{margin-top:8px;padding:10px;border-radius:6px;background:var(--bg);font-size:14px;min-height:64px}
+.dados{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.dados div{background:var(--bg);border-radius:6px;padding:8px 10px}
+.dados b{display:block;font-size:20px}.dados span{font-size:12px;color:var(--mu)}
+.bar{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+.bar em{flex:0 0 100px;font-style:normal}.bar div{flex:1;height:10px;background:var(--bg);border-radius:5px;overflow:hidden}.bar div i{display:block;height:100%}
+.oc{list-style:none;margin:0;padding:0}
+.oc li{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--bd);font-size:13.5px}
+.oc li:first-child{border-top:0}
+.tag{flex:0 0 auto;padding:1px 8px;border-radius:4px;font-size:12px;color:#fff;height:fit-content}
+.org{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+.org div{border:1px solid var(--bd);border-radius:6px;padding:9px 11px;font-size:13px}
+.org b{display:block}.org small{color:var(--mu)}
+.org .st{float:right;font-size:11px;border:1px solid var(--ac);color:var(--ac);border-radius:4px;padding:0 5px}
+.acoes{margin:0;padding-left:18px;font-size:14px}
+.acoes li{margin:4px 0}
+svg text{font-family:inherit}
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;background:#d12b2b;color:#fff;border:0;border-radius:999px;padding:13px 20px;font:inherit;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer}
+body.orgao .fab{display:none}
+.fab:focus-visible,.alt:focus-visible,.call:focus-visible{outline:3px solid var(--tx);outline-offset:2px}
+#ajuda{display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:12px}
+#ajuda .box{background:var(--sf);color:var(--tx);border-radius:10px;max-width:560px;width:100%;max-height:92vh;overflow:auto;padding:16px;display:grid;gap:10px}
+#ajuda h2{margin:0}#ajuda h3{margin:6px 0 2px;font-size:14px}
+.alt{display:block;width:100%;text-align:left;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:10px 12px;font:inherit;cursor:pointer;margin-bottom:6px}
+.alt[aria-pressed="true"]{border-color:var(--ac);font-weight:700}
+.call{display:block;text-align:center;text-decoration:none;background:var(--l3);color:#fff;border-radius:6px;padding:11px;font-weight:700;margin-top:6px}
+.call small{display:block;font-weight:400;opacity:.9}
+#ajuda textarea,#ajuda input[type=tel]{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:8px;font:inherit}
+#ajMsg{font-size:13.5px;min-height:18px}
+body:not(.orgao) .so{display:none}
+body.orgao .po{display:none}
+.tb{width:100%;border-collapse:collapse;font-size:13px}.tb th,.tb td{text-align:left;padding:6px 8px;border-top:1px solid var(--bd);white-space:nowrap}.tb th{color:var(--mu);font-weight:600;border-top:0}
+#minuta{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:9px;font:inherit}
+#gate{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;padding:max(20px,env(safe-area-inset-top,0px)) 16px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#gate h1{margin:0;font-size:34px;color:var(--ac)}
+.gc{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));max-width:760px;width:100%}
+.gc section{display:flex;flex-direction:column;gap:10px}
+.gc p{margin:0;font-size:14px;color:var(--mu)}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:6px;padding:9px 14px;font:inherit;font-weight:600;cursor:pointer}
+.btn:focus-visible,input[type=password]:focus-visible{outline:2px solid var(--tx);outline-offset:2px}
+header .btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.6);padding:5px 10px;font-size:13px}
+.ptag{font-size:12.5px;border:1px solid rgba(255,255,255,.6);border-radius:999px;padding:3px 10px}
+input[type=password]{padding:9px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit}
+#erro{color:var(--l3);font-size:13px;min-height:18px}
+.opg{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px}
+.opg h3{margin:0 0 6px;font-size:14px}
+.pc{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0;border-top:1px solid var(--bd)}
+</style>
+</head>
+<body>
+<div id="gate" role="dialog" aria-label="Escolha o perfil de acesso">
+  <h1>ALERTA DF</h1>
+  <p style="margin:0;color:var(--mu)">Escolha como deseja acessar o sistema</p>
+  <div class="gc">
+    <section><h2>Público</h2><p>Alertas, mapa de riscos, previsão do tempo e orientações de segurança para toda a população.</p><button class="btn" id="btnPub">Entrar como cidadão</button></section>
+    <section><h2>Órgão responsável</h2><p>Sala de situação: fila de ocorrências, tarefas por órgão, recursos, abrigos, hidrologia, infraestrutura sensível e minuta de alerta. Uso restrito.</p>
+      
+      <button class="btn" id="btnOrg">Entrar como órgão</button><div id="erro" role="alert"></div>
+      </section>
+  </div>
+  <p class="aviso" style="max-width:760px">Atenção: o perfil de órgão está sem senha e seus dados ficam acessíveis a qualquer pessoa que abrir o sistema.</p>
+</div>
+<button class="fab" id="fab" aria-haspopup="dialog">🆘 Preciso de ajuda</button>
+<div id="ajuda" role="dialog" aria-modal="true" aria-labelledby="ajTit"><div class="box">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 id="ajTit">Preciso de ajuda</h2><button class="btn" id="ajFechar">Fechar</button></div>
+  <p class="aviso" style="margin:0"><b>Risco de vida? Ligue agora: 192 (SAMU) ou 193 (Bombeiros).</b> Este formulário não substitui a ligação.</p>
+  <p style="margin:0;font-size:13.5px">Precisa de abrigo? Ligue <b>199</b> para saber qual está aberto e veja os locais em <a href="#abrigos" onclick="document.getElementById('ajuda').style.display='none'">Abrigos e acolhimento</a>.</p>
+  <h3>1. O que está acontecendo?</h3><div id="ajLista"></div>
+  <div id="ajRes"></div>
+  <h3>2. Compartilhe onde você está (opcional)</h3>
+  <button class="alt" id="ajGeo">📍 Obter minha localização</button><div id="ajLoc" style="font-size:13.5px"></div>
+  <h3>3. Registrar um relato aos órgãos (não urgente)</h3>
+  <textarea id="ajTxt" rows="3" maxlength="500" placeholder="Descreva o que aconteceu e o endereço ou ponto de referência" aria-label="Descrição do relato"></textarea>
+  <input type="tel" id="ajTel" placeholder="Telefone para contato (opcional)" aria-label="Telefone para contato" autocomplete="tel">
+  <input type="text" id="ajHp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+  <label style="font-size:13.5px"><input type="checkbox" id="ajUsaLoc"> Enviar minha localização junto com o relato</label>
+  <button class="btn" id="ajEnviar">Enviar relato</button><div id="ajMsg" role="status"></div>
+  <p style="margin:0;font-size:12px;color:var(--mu)">Seus dados (descrição, telefone e localização, se você marcar) são usados apenas para encaminhar o atendimento aos órgãos responsáveis.</p>
+</div></div>
+<header>
+  <div><h1>ALERTA DF</h1><p>Previsão e resposta a riscos naturais — Distrito Federal</p></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="ptag" id="perfilTag"></span><button class="btn" id="trocar">Trocar perfil</button><div id="nivel" role="status" aria-live="polite">Nível geral: —</div></div>
+</header>
+<main>
+<div class="aviso c12">Protótipo com <b>dados simulados</b> para demonstração. Em produção, cada fonte abaixo é ligada por um conector oficial (API ou arquivo). Em emergência real, ligue <b>193</b> (Bombeiros) ou <b>199</b> (Defesa Civil).</div>
+
+<section class="c7">
+  <h2>Mapa de alertas do DF</h2>
+  <div class="tabs" id="camadas" role="radiogroup" aria-label="Camada do mapa"></div>
+  <div id="mapa" role="application" aria-label="Mapa do Distrito Federal com alertas" style="height:520px;border-radius:6px"></div>
+  <div class="slider"><span>Agora</span><input id="hora" type="range" min="0" max="47" value="0" aria-label="Horas à frente"><span id="horaTxt">+0 h</span></div>
+  <div class="leg"><span><i style="background:var(--l0)"></i>Baixo</span><span><i style="background:var(--l1)"></i>Moderado</span><span><i style="background:var(--l2)"></i>Alto</span><span><i style="background:var(--l3)"></i>Crítico</span></div>
+  <div id="detalhe">Toque em uma região para ver o risco detalhado.</div>
+</section>
+
+<div class="c5" style="display:grid;gap:14px;align-content:start">
+  <section>
+    <h2>Dados meteorológicos (estação Brasília)</h2>
+    <div class="dados" id="dados"></div>
+  </section>
+  <section class="so"><h2>Situação operacional</h2><div id="sit"></div></section>
+  <section class="po"><h2>Risco por tipo de evento</h2>
+    <div id="tipos"></div>
+  </section>
+</div>
+
+<section class="c12">
+  <h2>Chuva prevista nas próximas 48 horas</h2>
+  <div style="overflow-x:auto"><svg id="grafico" viewBox="0 0 760 240" style="min-width:600px;width:100%" role="img" aria-label="Gráfico de precipitação e probabilidade de chuva nas próximas 48 horas"></svg></div>
+</section>
+
+<section class="c12" id="abrigos"><h2>Abrigos e acolhimento no DF</h2>
+  <p class="aviso" style="margin:0 0 10px">Estes são locais que o GDF <b>já usou</b> como abrigo emergencial. Não encontrei uma lista pública fixa da Defesa Civil: os abrigos são ativados conforme a ocorrência. <b>Antes de ir, ligue 199 e confirme se o local está aberto.</b> Os de “frio” atendem pessoas em situação de rua.</p>
+  <div class="org" id="abrigosLista"></div>
+</section>
+<section class="c6 po"><h2>Ocorrências recentes</h2>
+  <ul class="oc" id="ocorrencias"></ul>
+</section>
+
+<section class="c6 po"><h2 id="acoesTit">Ações recomendadas agora</h2>
+  <ol class="acoes" id="acoes"></ol>
+</section>
+
+
+<section class="c7 so"><h2>Fila de ocorrências</h2><div style="overflow-x:auto"><table class="tb" id="fila"></table></div></section>
+<section class="c5 so"><h2>O que cada órgão deve fazer agora</h2><div id="proto"></div></section>
+<section class="c12 so"><h2>Recursos, hidrologia e infraestrutura</h2><div class="opg" id="op"></div></section>
+<section class="c12 so"><h2>Minuta de alerta à população</h2><p class="aviso" style="margin:0 0 8px">Rascunho gerado a partir do cenário atual. O disparo oficial (cell broadcast / SMS 40199) é feito pela Defesa Civil.</p><textarea id="minuta" rows="4" aria-label="Minuta de alerta"></textarea><button class="btn" id="copiar" style="margin-top:8px">Copiar minuta</button></section>
+<section class="c12 so"><h2>Integrações com órgãos públicos</h2><div class="org" id="orgaos"></div></section>
+</main>
+
+<script>
+var NOMES=["Baixo","Moderado","Alto","Crítico"],COR=["var(--l0)","var(--l1)","var(--l2)","var(--l3)"];
+var TIPOS={rain:"Chuva forte",flood:"Alagamento",slide:"Deslizamento",storm:"Tempestade",tornado:"Tornado"};
+/* nome, x, y, chuva, alagamento, deslizamento, tempestade, tornado (0-1 vulnerabilidade) */
+var RA=[
+["Plano Piloto",215,212,.7,.8,.2,.7,.15],["Taguatinga",160,246,.7,.85,.3,.7,.2],["Ceilândia",125,252,.7,.7,.2,.75,.25],
+["Samambaia",148,288,.65,.6,.35,.7,.2],["Gama",150,345,.6,.5,.5,.65,.2],["Santa Maria",190,335,.6,.5,.45,.65,.15],
+["Planaltina",262,108,.7,.5,.3,.8,.35],["Sobradinho",232,150,.7,.6,.6,.7,.2],["Paranoá",268,226,.65,.55,.5,.7,.15],
+["São Sebastião",276,268,.65,.6,.7,.7,.15],["Brazlândia",92,150,.65,.45,.4,.75,.3],["Recanto das Emas",138,316,.6,.55,.3,.65,.2],
+["Riacho Fundo",172,272,.65,.65,.3,.65,.15],["Itapoã",262,186,.7,.75,.4,.7,.2],["Sol Nascente",112,236,.7,.7,.75,.7,.2],["Fercal",212,92,.6,.4,.7,.65,.15]
+];
+var LL={"Plano Piloto":[-15.79,-47.89],"Taguatinga":[-15.83,-48.06],"Ceilândia":[-15.82,-48.11],"Samambaia":[-15.88,-48.09],"Gama":[-16.02,-48.06],"Santa Maria":[-16.00,-47.99],"Planaltina":[-15.62,-47.65],"Sobradinho":[-15.65,-47.79],"Paranoá":[-15.80,-47.78],"São Sebastião":[-15.90,-47.77],"Brazlândia":[-15.67,-48.20],"Recanto das Emas":[-15.91,-48.06],"Riacho Fundo":[-15.88,-48.01],"Itapoã":[-15.73,-47.76],"Sol Nascente":[-15.80,-48.13],"Fercal":[-15.60,-47.87]};
+var DFB=[[-48.15,-15.52],[-47.90,-15.50],[-47.60,-15.50],[-47.40,-15.55],[-47.31,-15.70],[-47.33,-15.90],[-47.45,-16.03],[-47.70,-16.05],[-48.00,-16.03],[-48.20,-15.99],[-48.29,-15.90],[-48.27,-15.70]];
+var LAKE=[[-47.88,-15.72],[-47.84,-15.73],[-47.82,-15.78],[-47.85,-15.86],[-47.88,-15.84],[-47.87,-15.78]];
+function X(lo){return (lo+48.31)*654+20}function Y(la){return (-15.48-la)*680+20}
+function PTS(a){return a.map(function(p){return X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)}).join(" ")}
+RA.forEach(function(r){var c=LL[r[0]];r[1]=X(c[1]);r[2]=Y(c[0])});
+var IDX={rain:3,flood:4,slide:5,storm:6,tornado:7};
+var CAM=[["all","Todos"],["rain","Chuva"],["flood","Alagamento"],["slide","Deslizamento"],["storm","Tempestade"],["tornado","Tornado"]];
+/* previsão sintética: frente fria com pico em +7 h e novo pulso em +30 h */
+var P=[],PR=[];
+for(var h=0;h<48;h++){var a=Math.exp(-Math.pow(h-7,2)/18)*34,b=Math.exp(-Math.pow(h-30,2)/30)*18;var v=Math.round((a+b+(h%5==0?1:0))*10)/10;P.push(v);PR.push(Math.min(98,Math.round(15+v*3.2)));}
+var MAXP=Math.max.apply(null,P),layer="all",hora=0,sel=null;
+
+function nivel(x){return x<.35?0:x<.6?1:x<.8?2:3}
+function risco(r,t,h){var k=Math.min(1,P[h]/22);var acum=0;for(var i=Math.max(0,h-12);i<=h;i++)acum+=P[i];var ac=Math.min(1,acum/70);
+  var base=r[IDX[t]],f=t=="slide"?ac:t=="tornado"?Math.min(1,k*.8+(PR[h]>70?.15:0)):t=="flood"?Math.max(k,ac*.8):k;
+  return Math.min(1,base*(.15+.95*f))}
+function maxRisco(r,h){var m=0,t0="rain";for(var t in TIPOS){var v=risco(r,t,h);if(v>m){m=v;t0=t}}return [m,t0]}
+function el(n,a,p){var e=document.createElementNS("http://www.w3.org/2000/svg",n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+
+/* camadas */
+var cd=document.getElementById("camadas");
+CAM.forEach(function(c,i){var l=document.createElement("label");l.innerHTML='<input type="radio" name="cam" value="'+c[0]+'"'+(i==0?" checked":"")+'><span>'+c[1]+'</span>';
+  l.firstChild.onchange=function(){layer=c[0];desenhar()};cd.appendChild(l)});
+
+/* mapa — Leaflet e OpenStreetMap */
+var GM=null,gmItems=[],HEX=["#2e9e5b","#e0b100","#e8741a","#d12b2b"];
+function initMap(){
+  GM=L.map("mapa").setView([-15.79,-47.88],10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+  }).addTo(GM);
+  L.polygon(DFB.map(function(p){return [p[1],p[0]]}),{color:"#0b5cab",weight:3,fillColor:"#0b5cab",fillOpacity:.04,interactive:false}).addTo(GM);
+  desenhar();
+}
+function desenhar(){
+  if(!GM)return;
+  gmItems.forEach(function(o){GM.removeLayer(o)});gmItems=[];
+  RA.forEach(function(r,i){
+    var m,t;if(layer=="all"){var q=maxRisco(r,hora);m=q[0];t=q[1]}else{t=layer;m=risco(r,layer,hora)}
+    var n=nivel(m),pos={lat:LL[r[0]][0],lng:LL[r[0]][1]};
+    var c=L.circle([pos.lat,pos.lng],{radius:1500+m*3500,color:HEX[n],weight:t=="tornado"?3:2,fillColor:HEX[n],fillOpacity:.45}).addTo(GM);
+    c.bindTooltip(r[0],{permanent:true,direction:"center",className:"region-label",interactive:false});
+    c.bindPopup("<b>"+r[0]+"</b><br>"+NOMES[n]+" — "+TIPOS[t]);
+    c.on("click",function(){sel=i;detalhe();desenhar()});
+    gmItems.push(c);
+  });
+}
+function detalhe(){
+  var d=document.getElementById("detalhe");if(sel===null){return}
+  var r=RA[sel],h='<b>'+r[0]+'</b> — +'+hora+' h<br>';
+  for(var t in TIPOS){var n=nivel(risco(r,t,hora));h+='<span style="margin-right:12px;white-space:nowrap"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+COR[n]+'"></i> '+TIPOS[t]+': '+NOMES[n]+'</span>'}
+  if(perfil=="orgao"&&RES){var pp=RES.POP[sel],mx=maxRisco(r,hora)[0],inf=RES.INFRA.filter(function(x){return x[0]==sel}).map(function(x){return x[1]});h+='<hr style="border:0;border-top:1px solid var(--bd)"><b>Para a resposta:</b> população exposta ≈ '+Math.round(pp*mx)+' mil de '+pp+' mil · infraestrutura sensível: '+(inf.join("; ")||"nenhuma cadastrada")+' · equipes sugeridas: '+Math.max(1,Math.round(mx*6))+' de drenagem e '+Math.max(1,Math.round(mx*4))+' de resgate'}
+  d.innerHTML=h;
+}
+
+/* gráfico */
+function grafico(){
+  var S=document.getElementById("grafico");S.innerHTML="";
+  var L=40,B=200,W=700,H=170,bw=W/48;
+  for(var y=0;y<=4;y++){var yy=B-H*y/4;el("line",{x1:L,x2:L+W,y1:yy,y2:yy,stroke:"var(--bd)"},S);var t=el("text",{x:L-6,y:yy+4,"text-anchor":"end","font-size":10,fill:"var(--mu)"},S);t.textContent=Math.round(MAXP*1.15*y/4)+""}
+  var tt=el("text",{x:4,y:12,"font-size":10,fill:"var(--mu)"},S);tt.textContent="mm/h";
+  P.forEach(function(v,i){var hh=H*v/(MAXP*1.15),n=v>20?3:v>10?2:v>4?1:0;
+    var r=el("rect",{x:L+i*bw+1,y:B-hh,width:bw-2,height:Math.max(hh,1),fill:COR[n],opacity:i==hora?1:.7},S);
+    var ti=el("title",{},r);ti.textContent="+"+i+" h: "+v+" mm/h, probabilidade "+PR[i]+"%";
+    if(i%6==0){var x=el("text",{x:L+i*bw+bw/2,y:B+14,"text-anchor":"middle","font-size":10,fill:"var(--mu)"},S);x.textContent="+"+i+"h"}});
+  var pts=PR.map(function(p,i){return (L+i*bw+bw/2)+","+(B-H*p/100)}).join(" ");
+  el("polyline",{points:pts,fill:"none",stroke:"var(--ac)","stroke-width":2},S);
+  el("line",{x1:L+hora*bw+bw/2,x2:L+hora*bw+bw/2,y1:B-H-6,y2:B,stroke:"var(--tx)","stroke-dasharray":"4 3"},S);
+  var lg=el("text",{x:L+W,y:12,"text-anchor":"end","font-size":11,fill:"var(--ac)"},S);lg.textContent="Linha: probabilidade de chuva (%) — barras: intensidade (mm/h)";
+}
+
+/* painéis */
+function paineis(){
+  var T=26-Math.round(Math.min(P[hora],20)*.3),U=Math.round(55+Math.min(P[hora],20)*1.8),V=Math.round(12+P[hora]*1.6),Pa=Math.round(1012-P[hora]*.35);
+  var ac=0;for(var i=0;i<=hora;i++)ac+=P[i];
+  document.getElementById("dados").innerHTML=[[T+" °C","Temperatura"],[U+" %","Umidade"],[V+" km/h","Rajada de vento"],[Pa+" hPa","Pressão"],[P[hora]+" mm/h","Chuva agora"],[Math.round(ac)+" mm","Acumulada até aqui"]].map(function(x){return '<div><b>'+x[0]+'</b><span>'+x[1]+'</span></div>'}).join("");
+  var h="";for(var t in TIPOS){var m=0;RA.forEach(function(r){m=Math.max(m,risco(r,t,hora))});var n=nivel(m);
+    h+='<div class="bar"><em>'+TIPOS[t]+'</em><div><i style="width:'+Math.max(6,m*100)+'%;background:'+COR[n]+'"></i></div><span style="width:70px">'+NOMES[n]+'</span></div>'}
+  document.getElementById("tipos").innerHTML=h;
+  var gm=0,gr="";RA.forEach(function(r){var q=maxRisco(r,hora);if(q[0]>gm){gm=q[0];gr=r[0]}});var gn=nivel(gm);
+  var N=document.getElementById("nivel");N.textContent="Nível geral: "+NOMES[gn]+" · pior região: "+gr;N.style.borderLeftColor=COR[gn].replace("var(--l","").length?getComputedStyle(document.documentElement).getPropertyValue("--l"+gn):"";
+  var A=[["Monitorar boletins do INMET e da Defesa Civil.","Manter canais de contato abertos com as regiões."],
+   ["Limpar bocas de lobo e galerias nas regiões em amarelo.","Preparar equipes de plantão e informar a população por SMS."],
+   ["Acionar equipes da NOVACAP e do CBMDF nas áreas de alagamento.","Interditar pontos críticos e sinalizar desvios.","Alertar moradores de encostas por SMS (cell broadcast)."],
+   ["Ativar o Centro de Operações da Defesa Civil.","Retirar preventivamente famílias em áreas de deslizamento.","Abrir abrigos e suspender atividades ao ar livre.","Orientar abrigo em local fechado em risco de tornado."]][gn];
+  var PB=[["Acompanhe os avisos oficiais.","Mantenha o celular carregado."],["Evite áreas onde a água costuma acumular.","Guarde documentos e objetos em local alto."],["Não atravesse ruas alagadas a pé nem de carro.","Afaste-se de encostas, árvores e fios caídos.","Durante raios, fique em local fechado e desligue aparelhos da tomada."],["Procure imediatamente um local seguro e fechado.","Moradores de encostas: saiam de casa se a Defesa Civil orientar.","Em emergência, ligue 199 (Defesa Civil) ou 193 (Bombeiros)."]];
+  var LST=perfil=="orgao"?A:PB[gn];
+  document.getElementById("acoes").innerHTML=LST.map(function(a){return "<li>"+a+"</li>"}).join("");
+}
+function ocorr(){
+  var O=[["Alagamento","var(--l2)","Taguatinga","há 12 min"],["Deslizamento","var(--l3)","Sol Nascente","há 35 min"],["Queda de árvore","var(--l1)","Plano Piloto","há 1 h"],["Alagamento","var(--l1)","Taguatinga","há 2 h"],["Descarga elétrica","var(--l1)","Sobradinho","há 3 h"]];
+  document.getElementById("ocorrencias").innerHTML=O.map(function(o){return '<li><span class="tag" style="background:'+o[1]+'">'+o[0]+'</span><span><b>'+o[2]+'</b><br><small style="color:var(--mu)">'+o[3]+' · Equipes acionadas</small></span></li>'}).join("");
+}
+var ABRIGOS=[
+{nome:"Escola Parque Anísio Teixeira",end:"QNM 27, Módulo B",regiao:"Ceilândia",tipo:"Chuva — famílias desabrigadas",cap:null,obs:"Montado pelo GDF em 2024 para famílias desabrigadas pela chuva no Sol Nascente/Pôr do Sol, com alimentação, itens de higiene e local para dormir.",fonte:"https://agitabrasilia.com/dezesseis-familias-desabrigadas-pela-chuva-no-sol-nascente-ja-foram-cadastradas-para-receber-ate-r-14-mil-em-auxilio-do-gdf/",q:"Escola Parque Anísio Teixeira Ceilândia QNM 27"},
+{nome:"Ginásio do Cief",end:"907 Sul (Centro Integrado de Educação Física)",regiao:"Plano Piloto",tipo:"Frio — população em situação de rua",cap:110,obs:"Abrigo emergencial da Sedes-DF na edição de 2025, aberto das 19h30 às 6h.",fonte:"https://segov.df.gov.br/w/abrigo-contra-o-frio-atende-108-pessoas-em-situacao-de-rua-no-df",q:"Centro Integrado de Educação Física Cief 907 Sul Brasília"},
+{nome:"Ginásio Bezerrinho",end:"Gama",regiao:"Gama",tipo:"Frio — população em situação de rua",cap:40,obs:"Alojamento emergencial da Sedes-DF em 2023, das 19h às 7h.",fonte:"https://www.metropoles.com/distrito-federal/gdf-abre-140-vagas-em-ginasios-para-abrigar-populacao-de-rua-no-frio",q:"Ginásio Bezerrinho Gama DF"},
+{nome:"Escola do Parque da Cidade (Proem)",end:"909 Sul",regiao:"Plano Piloto",tipo:"Frio — população em situação de rua",cap:100,obs:"Alojamento emergencial da Sedes-DF em 2023, das 19h às 7h.",fonte:"https://www.metropoles.com/distrito-federal/gdf-abre-140-vagas-em-ginasios-para-abrigar-populacao-de-rua-no-frio",q:"Escola do Parque da Cidade Proem 909 Sul Brasília"}];
+function abrigosView(){
+  document.getElementById("abrigosLista").innerHTML=ABRIGOS.map(function(a){return '<div><span class="st">'+(a.tipo.indexOf("Chuva")==0?"chuva":"frio")+'</span><b>'+a.nome+'</b>'+a.end+' — '+a.regiao+'<br><small>'+a.tipo+(a.cap?' · até '+a.cap+' vagas':'')+'</small><br><small>'+a.obs+'</small><br><a href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(a.q)+'" target="_blank" rel="noopener">Ver no Google Maps</a> · <a href="'+a.fonte+'" target="_blank" rel="noopener">Fonte</a></div>'}).join("")}
+function orgaos(){
+  var G=[["INMET","Recebe: estações e avisos meteorológicos","a cada 10 min"],["CEMADEN","Recebe: alertas e mapas de risco","a cada 15 min"],["CPTEC/INPE","Recebe: previsão numérica e radar","a cada 1 h"],["Defesa Civil DF","Envia: minutas de alerta; recebe: decretos e abrigos","sob demanda"],["CBMDF","Recebe: ocorrências do 193 e viaturas","tempo real"],["NOVACAP","Envia: pontos críticos; recebe: status das equipes","a cada 5 min"],["CAESB","Recebe: rede de águas pluviais e esgoto","a cada 15 min"],["ADASA","Recebe: níveis de reservatórios e rios","a cada 30 min"],["DER-DF / Detran-DF","Recebe: interdições e desvios","tempo real"],["Neoenergia","Recebe: falhas de energia por região","a cada 5 min"]];
+  document.getElementById("orgaos").innerHTML=G.map(function(g){return '<div><span class="st">simulado</span><b>'+g[0]+'</b>'+g[1]+'<br><small>Atualização: '+g[2]+'</small></div>'}).join("");
+}
+var hs=document.getElementById("hora");
+hs.oninput=function(){hora=+hs.value;document.getElementById("horaTxt").textContent="+"+hora+" h";desenhar();detalhe();grafico();paineis()};
+/* DADOS DO PERFIL ÓRGÃO (simulados) — substitua por dados reais quando houver integração */
+var DADOS={"LIM":{"h1":20,"h3":45,"h24":80},"ANT":48,"EQ":[["CBMDF — viaturas de resgate",30],["NOVACAP — equipes de drenagem",15],["Defesa Civil — equipes de campo",10],["DER-DF — equipes de sinalização",8]],"HID":[["Lago Paranoá (% da capacidade)",78,0.45],["Reservatório do Descoberto (%)",71,0.25],["Córrego Vicente Pires (% da cota)",52,0.9],["Córrego de Samambaia (% da cota)",48,0.85]],"PC":[["EPTG, Taguatinga",1,"flood","NOVACAP / DER-DF"],["Córrego em Vicente Pires",12,"flood","NOVACAP"],["Encosta em Sol Nascente",14,"slide","Defesa Civil"],["Encosta em São Sebastião",9,"slide","Defesa Civil"],["Galeria no Plano Piloto",0,"flood","NOVACAP / CAESB"]],"POP":[230,210,350,230,135,130,190,100,70,115,55,130,40,70,90,10],"INFRA":[[0,"Hospital de Base do DF","Hospital"],[1,"Hospital Regional de Taguatinga","Hospital"],[2,"Hospital Regional de Ceilândia","Hospital"],[3,"Hospital Regional de Samambaia","Hospital"],[4,"Hospital Regional do Gama","Hospital"],[5,"Hospital Regional de Santa Maria","Hospital"],[6,"Hospital Regional de Planaltina","Hospital"],[7,"Hospital Regional de Sobradinho","Hospital"],[8,"Hospital Regional do Paranoá","Hospital"],[10,"Hospital Regional de Brazlândia","Hospital"],[14,"Escolas e UBS de Sol Nascente","Escolas/UBS"],[9,"Escolas rurais de São Sebastião","Escolas"]],"OC":[["OC-0412","Alagamento","EPTG, sentido Plano Piloto","há 12 min","Alta","CBMDF / DER-DF","Equipe a caminho"],["OC-0411","Deslizamento","Sol Nascente, Trecho 2","há 35 min","Alta","Defesa Civil","No local"],["OC-0409","Queda de árvore","Asa Norte, W3","há 1 h","Média","NOVACAP","Em atendimento"],["OC-0407","Alagamento","Setor Comercial Sul, Taguatinga","há 2 h","Média","NOVACAP","Aguardando equipe"],["OC-0405","Descarga elétrica","Sobradinho II","há 3 h","Baixa","Neoenergia","Concluída"]],"PROTO":[[["INMET / CEMADEN","Manter monitoramento e emitir boletins de rotina."],["Defesa Civil","Verificar a prontidão de equipes e abrigos."]],[["NOVACAP","Limpar bocas de lobo e galerias nos pontos críticos."],["Defesa Civil","Notificar regiões em atenção e pré-posicionar equipes."],["CBMDF","Reforçar o plantão do 193."]],[["NOVACAP","Enviar equipes de drenagem aos pontos críticos em nível alto."],["CBMDF","Pré-posicionar viaturas e resgate em regiões altas."],["DER-DF","Sinalizar e preparar a interdição de vias alagáveis."],["Defesa Civil","Alertar por SMS as áreas de encosta e alagamento; abrir abrigos de apoio."],["CAESB / Neoenergia","Manter equipes de prontidão para falhas de água, esgoto e energia."]],[["Defesa Civil","Ativar o centro de operações; decidir remoção preventiva em áreas de deslizamento; abrir abrigos."],["CBMDF","Empenhar todas as viaturas de resgate; priorizar vítimas e áreas isoladas."],["NOVACAP","Operar a drenagem em regime contínuo; priorizar vias de acesso a hospitais."],["DER-DF / Detran","Interditar vias alagadas e divulgar rotas alternativas."],["SES-DF","Acionar o plano de contingência dos hospitais regionais."],["Neoenergia / CAESB","Priorizar o restabelecimento de serviços a hospitais e abrigos."]]]};
+var RES=null,perfil=null;
+function acum(n){var t=0;for(var i=Math.max(0,hora-n+1);i<=hora;i++)t+=P[i];return Math.round(t*10)/10}
+function gnivel(){var m=0;RA.forEach(function(r){m=Math.max(m,maxRisco(r,hora)[0])});return nivel(m)}
+function barra(n,v,t,w,c){return '<div class="bar"><em style="flex-basis:'+w+'px">'+n+'</em><div><i style="width:'+Math.min(100,Math.round(v*100))+'%;background:'+(c||"var(--ac)")+'"></i></div><span style="width:58px;text-align:right">'+t+'</span></div>'}
+function pct(v){return v<70?0:v<85?1:v<95?2:3}
+function operacional(){
+  if(perfil!="orgao"||!RES)return;
+  var gn=gnivel(),f=Math.min(1,P[hora]/22),L=RES.LIM,ac24=acum(24),pk=hora,pv=P[hora],
+  q=RA.map(function(r,i){var m=maxRisco(r,hora);return {n:r[0],i:i,m:m[0],t:m[1]}}).sort(function(a,b){return b.m-a.m}),
+  crit=q.filter(function(x){return nivel(x.m)>=2});
+  for(var k=hora;k<Math.min(48,hora+13);k++)if(P[k]>pv){pv=P[k];pk=k}
+  var h='<div class="pc"><span>Nível geral</span><b style="color:'+COR[gn]+'">'+NOMES[gn]+'</b></div><div class="pc"><span>Regiões em nível alto ou crítico</span><b>'+crit.length+'</b></div>';
+  if(crit.length)h+='<small style="color:var(--mu)">'+crit.slice(0,5).map(function(x){return x.n+" ("+TIPOS[x.t].toLowerCase()+")"}).join(", ")+'</small>';
+  h+='<div class="pc"><span>Próximo pico (12 h)</span><b>'+(pk==hora?"agora":"em +"+(pk-hora)+" h")+' · '+pv+' mm/h</b></div><h3 style="margin:10px 0 4px">Chuva acumulada × limiar crítico</h3>';
+  [["1 h",acum(1),L.h1],["3 h",acum(3),L.h3],["24 h",acum(24),L.h24]].forEach(function(w){h+=barra(w[0],w[1]/w[2],w[1]+"/"+w[2],40,COR[nivel(w[1]/w[2])])});
+  document.getElementById("sit").innerHTML=h;
+  document.getElementById("proto").innerHTML='<p style="margin:0 0 6px;color:var(--mu);font-size:13px">Cenário em nível '+NOMES[gn].toLowerCase()+'</p>'+RES.PROTO[gn].map(function(p){return '<div class="pc"><b style="flex:0 0 118px;white-space:normal">'+p[0]+'</b><span>'+p[1]+'</span></div>'}).join("");
+  var PRI={"Alta":"var(--l3)","Média":"var(--l2)","Baixa":"var(--l1)"};
+  document.getElementById("fila").innerHTML='<tr><th>Protocolo</th><th>Tipo</th><th>Local</th><th>Há</th><th>Prioridade</th><th>Órgão</th><th>Status</th></tr>'+RES.OC.map(function(o){return '<tr><td>'+o[0]+'</td><td>'+o[1]+'</td><td>'+o[2]+'</td><td>'+o[3]+'</td><td><b style="color:'+PRI[o[4]]+'">'+o[4]+'</b></td><td>'+o[5]+'</td><td>'+o[6]+'</td></tr>'}).join("");
+  var o='<div><h3>Recursos empenhados</h3>';
+  RES.EQ.forEach(function(e){var u=Math.round(e[1]*(.25+.7*f));o+=barra(e[0],u/e[1],u+"/"+e[1],190)});
+  o+='</div><div><h3>Abrigos de referência</h3>';ABRIGOS.forEach(function(a){o+='<div class="pc"><span>'+a.nome+'<br><small style="color:var(--mu)">'+a.regiao+' · '+(a.cap?'capacidade '+a.cap:'capacidade não informada')+'</small></span><b style="color:var(--mu)">sem dados de ocupação</b></div>'});
+  o+='</div><div><h3>Hidrologia e solo</h3>';
+  RES.HID.forEach(function(x){var v=Math.min(100,Math.round(x[1]+ac24*x[2]));o+=barra(x[0],v/100,v+"%",190,COR[pct(v)])});
+  var sol=Math.min(100,Math.round((RES.ANT+ac24)/1.3));o+=barra("Saturação do solo",sol/100,sol+"%",190,COR[pct(sol)]);
+  o+='</div><div><h3>Pontos críticos monitorados</h3>';
+  RES.PC.forEach(function(p){var n=nivel(risco(RA[p[1]],p[2],hora));o+='<div class="pc"><span>'+p[0]+'<br><small style="color:var(--mu)">Resp.: '+p[3]+'</small></span><b style="color:'+COR[n]+'">'+NOMES[n]+'</b></div>'});
+  o+='</div><div><h3>Infraestrutura sensível em risco</h3>';
+  RES.INFRA.map(function(x){return [x[1],maxRisco(RA[x[0]],hora)[0]]}).sort(function(a,b){return b[1]-a[1]}).slice(0,6).forEach(function(x){var n=nivel(x[1]);o+='<div class="pc"><span>'+x[0]+'</span><b style="color:'+COR[n]+'">'+NOMES[n]+'</b></div>'});
+  o+='</div><div><h3>Maior população exposta</h3>';
+  RA.map(function(r,i){return [r[0],RES.POP[i]*maxRisco(r,hora)[0]]}).sort(function(a,b){return b[1]-a[1]}).slice(0,5).forEach(function(x){o+='<div class="pc"><span>'+x[0]+'</span><b>≈ '+Math.round(x[1])+' mil</b></div>'});
+  document.getElementById("op").innerHTML=o+'</div>';
+  var tp=[];crit.slice(0,5).forEach(function(x){var t=TIPOS[x.t].toLowerCase();if(tp.indexOf(t)<0)tp.push(t)});
+  document.getElementById("minuta").value=crit.length?"ALERTA DEFESA CIVIL-DF ("+NOMES[gn].toUpperCase()+"): risco de "+tp.join(", ")+" em "+crit.slice(0,5).map(function(x){return x.n}).join(", ")+" nas próximas horas. Evite áreas alagáveis e encostas e não atravesse vias alagadas. Emergência: 199 ou 193.":"Sem necessidade de alerta à população neste cenário.";
+}
+var _p=paineis;paineis=function(){_p();operacional()};
+function entrar(p){perfil=p;document.body.className=p=="orgao"?"orgao":"";document.getElementById("gate").style.display="none";
+  document.getElementById("perfilTag").textContent=p=="orgao"?"Perfil: órgão responsável":"Perfil: público";
+  document.getElementById("acoesTit").textContent=p=="orgao"?"Ações operacionais recomendadas":"Orientações à população";
+  document.querySelector("main").scrollIntoView();if(GM)setTimeout(function(){GM.invalidateSize()},0);ocorr();paineis();detalhe()}
+function sair(){perfil=null;RES=null;document.body.className="";document.getElementById("op").innerHTML="";document.getElementById("erro").textContent="";document.getElementById("gate").style.display="flex";desenhar()}
+function tentar(){RES=DADOS;entrar("orgao")}
+document.getElementById("btnPub").onclick=function(){entrar("pub")};
+document.getElementById("btnOrg").onclick=tentar;
+document.getElementById("trocar").onclick=sair;
+document.getElementById("copiar").onclick=function(){var t=document.getElementById("minuta"),b=this;try{navigator.clipboard.writeText(t.value);b.textContent="Copiado"}catch(e){t.select()}setTimeout(function(){b.textContent="Copiar minuta"},1500)};
+ocorr();orgaos();abrigosView();hora=7;hs.value=7;hs.oninput();
+</script>
+<script>
+function erroMapa(t){document.getElementById("mapa").innerHTML='<p style="padding:16px">'+t+'</p>'}
+if(window.L)initMap();else erroMapa("Não foi possível carregar o mapa. Verifique sua conexão e se o acesso a unpkg.com e tile.openstreetmap.org está liberado.");
+</script>
+<script>
+(function(){
+var AJ=[
+["Pessoa ferida ou em risco de vida","Mantenha a calma, não mova feridos graves e siga as instruções do atendente.",[["SAMU","192"],["Corpo de Bombeiros (CBMDF)","193"]]],
+["Alagamento, pessoa ou carro preso na água","Não tente atravessar a água. Suba para um local alto e seguro.",[["Corpo de Bombeiros (CBMDF)","193"],["Defesa Civil","199"]]],
+["Deslizamento, rachadura ou casa em risco","Saia do local e afaste-se de encostas. Não volte até a liberação da Defesa Civil.",[["Defesa Civil","199"],["Corpo de Bombeiros (CBMDF)","193"]]],
+["Árvore caída ou via bloqueada","Se houver pessoas presas ou risco imediato, ligue para os Bombeiros. Caso contrário, registre na Ouvidoria do GDF (NOVACAP e DER-DF).",[["Corpo de Bombeiros (CBMDF)","193"],["Ouvidoria GDF (NOVACAP / DER-DF)","162"]]],
+["Fio caído ou falta de energia","Não se aproxime nem toque em fios caídos ou em poças perto deles.",[["Neoenergia Brasília","116"],["Corpo de Bombeiros (CBMDF)","193"]]],
+["Vazamento ou falta de água e esgoto","Se houver rua alagada por esgoto ou água, mantenha distância.",[["CAESB","115"]]],
+["Crime ou saque","Procure um local seguro e ligue para a polícia.",[["Polícia Militar","190"]]]];
+var A=document.getElementById("ajuda"),sel=null,pos=null,$=function(i){return document.getElementById(i)};
+function abrir(){A.style.display="flex";$("ajFechar").focus()}
+function fechar(){A.style.display="none";$("fab").focus()}
+$("fab").onclick=abrir;$("ajFechar").onclick=fechar;
+A.onclick=function(e){if(e.target===A)fechar()};
+document.addEventListener("keydown",function(e){if(e.key=="Escape"&&A.style.display=="flex")fechar()});
+var L=$("ajLista");
+AJ.forEach(function(a,i){var b=document.createElement("button");b.className="alt";b.setAttribute("aria-pressed","false");b.textContent=a[0];
+  b.onclick=function(){sel=i;Array.prototype.forEach.call(L.children,function(c){c.setAttribute("aria-pressed","false")});b.setAttribute("aria-pressed","true");
+    var h='<p style="margin:4px 0">'+a[1]+'</p>';a[2].forEach(function(o){h+='<a class="call" href="tel:'+o[1]+'">Ligar '+o[1]+'<small>'+o[0]+'</small></a>'});$("ajRes").innerHTML=h};
+  L.appendChild(b)});
+function getPos(cb){var m=$("ajLoc");if(!navigator.geolocation){m.textContent="Seu aparelho não permite obter a localização. Informe o endereço no relato.";cb(null);return}
+  m.textContent="Obtendo localização…";
+  navigator.geolocation.getCurrentPosition(function(p){pos={lat:p.coords.latitude,lng:p.coords.longitude};var u="https://www.google.com/maps?q="+pos.lat.toFixed(5)+","+pos.lng.toFixed(5);
+    m.innerHTML='Localização obtida (precisão ≈ '+Math.round(p.coords.accuracy)+' m). <a href="'+u+'" target="_blank" rel="noopener">Ver no mapa</a> · <a href="https://wa.me/?text='+encodeURIComponent("Preciso de ajuda. Minha localização: "+u)+'" target="_blank" rel="noopener">Enviar por WhatsApp</a>';cb(pos)},
+    function(){m.textContent="Não foi possível obter a localização. Verifique a permissão do navegador ou informe o endereço no relato.";cb(null)},{enableHighAccuracy:true,timeout:10000})}
+$("ajGeo").onclick=function(){getPos(function(){})};
+function enviar(){var m=$("ajMsg"),t=$("ajTxt").value.trim();
+  if(t.length<5){m.textContent="Descreva brevemente o que aconteceu.";return}
+  var corpo=function(){m.textContent="Enviando…";
+    fetch("/api/relato",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tipo:sel===null?"Não informado":AJ[sel][0],descricao:t,telefone:$("ajTel").value,loc:$("ajUsaLoc").checked?pos:null,hp:$("ajHp").value})})
+    .then(function(r){return r.json().then(function(d){return [r.ok,d]})})
+    .then(function(x){if(!x[0]){m.textContent=(x[1].error||"Não foi possível enviar.")+" Em urgência, ligue 193 ou 199.";return}
+      m.textContent=x[1].encaminhado?"Relato enviado aos órgãos. Protocolo: "+x[1].protocolo+".":"Relato recebido (protocolo "+x[1].protocolo+"), mas o encaminhamento aos órgãos ainda não está ativo. Em urgência, ligue 193 ou 199."})
+    .catch(function(){m.textContent="Serviço de relatos indisponível agora. Em urgência, ligue 193 ou 199."})};
+  if($("ajUsaLoc").checked&&!pos)getPos(corpo);else corpo()}
+$("ajEnviar").onclick=enviar;
+})();
+</script>
+</body>
+</html>
